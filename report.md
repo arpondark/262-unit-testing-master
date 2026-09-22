@@ -2,7 +2,8 @@
 
 ## 0) Team members
 
-Student ID and name: not provided.
+NAME: MD SHZAN MAHMUD ARPON 
+ID: 0112410351
 
 Scope: `Booking` only. The tests are in `src/test/java/parking/BookingTest.java`.
 
@@ -35,7 +36,7 @@ Booking scoped PIT result: **8 generated, 8 killed, 0 surviving; mutation score 
 The generated HTML report is at `target/pit-reports/index.html`. The project's default PIT configuration targets other classes, so this Booking only report was generated with:
 
 ```powershell
-mvn -DtargetClasses=parking.Booking -DtargetTests=parking.BookingTest org.pitest:pitest-maven:mutationCoverage
+mvn pitest:mutationCoverage
 ```
 
 ## D) Individual contribution

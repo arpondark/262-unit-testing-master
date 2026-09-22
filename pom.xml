@@ -37,6 +37,7 @@
             <param>parking.ParkingSlot</param>
             <param>parking.ParkingSystem</param> -->
              <param>parking.Booking</param>
+             <param>parking.ParkingSlot</param>
 
           </targetClasses>
           <targetTests>
