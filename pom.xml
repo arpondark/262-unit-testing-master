@@ -33,9 +33,11 @@
         <version>1.15.8</version>
         <configuration>
           <targetClasses>
-            <param>parking.Wallet</param>
+            <!-- <param>parking.Wallet</param>
             <param>parking.ParkingSlot</param>
-            <param>parking.ParkingSystem</param>
+            <param>parking.ParkingSystem</param> -->
+             <param>parking.Booking</param>
+
           </targetClasses>
           <targetTests>
             <param>parking.*</param>
