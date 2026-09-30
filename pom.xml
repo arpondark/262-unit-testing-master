@@ -43,6 +43,11 @@
           <targetTests>
             <param>parking.*</param>
           </targetTests>
+          <!-- PIT requires a green baseline. Normal Maven test runs still execute
+               these tests so the known implementation defects remain visible. -->
+          <excludedGroups>
+            <param>known-defect</param>
+          </excludedGroups>
         </configuration>
         <dependencies>
           <dependency>

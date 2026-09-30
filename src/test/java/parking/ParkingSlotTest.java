@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.LocalDateTime;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -166,8 +167,51 @@ class ParkingSlotTest {
         assertFalse(slot.isAvailable(REQUEST_START, REQUEST_END));
     }
 
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingWithSameWindowDoesNotBlockSlot() {
+        addCancelledBooking(REQUEST_START, REQUEST_END);
+
+        assertTrue(slot.isAvailable(REQUEST_START, REQUEST_END),
+                "Cancelling a reservation must release its parking slot");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingContainingRequestedWindowDoesNotBlockSlot() {
+        addCancelledBooking(REQUEST_START.minusHours(1), REQUEST_END.plusHours(1));
+
+        assertTrue(slot.isAvailable(REQUEST_START, REQUEST_END),
+                "A cancelled reservation must be ignored even when its old window contains the request");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingInsideRequestedWindowDoesNotBlockSlot() {
+        addCancelledBooking(REQUEST_START.plusMinutes(30), REQUEST_END.minusMinutes(30));
+
+        assertTrue(slot.isAvailable(REQUEST_START, REQUEST_END),
+                "A cancelled reservation must be ignored even when its old window is inside the request");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingDoesNotMakeCompatibleVehicleIncompatible() {
+        addCancelledBooking(REQUEST_START, REQUEST_END);
+
+        assertTrue(slot.isCompatible(VehicleType.CAR, REQUEST_START, REQUEST_END),
+                "A compatible vehicle must be able to use a slot released by cancellation");
+    }
+
     private void addBooking(LocalDateTime start, LocalDateTime end) {
         Vehicle vehicle = new Vehicle(1, VehicleType.CAR, 100.0);
         slot.getBookings().add(new Booking(1, vehicle, slot, start, end, 20.0));
+    }
+
+    private void addCancelledBooking(LocalDateTime start, LocalDateTime end) {
+        Vehicle vehicle = new Vehicle(1, VehicleType.CAR, 100.0);
+        Booking cancelledBooking = new Booking(1, vehicle, slot, start, end, 20.0);
+        cancelledBooking.cancelBooking();
+        slot.getBookings().add(cancelledBooking);
     }
 }
