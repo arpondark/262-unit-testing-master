@@ -2,11 +2,11 @@
 
 ## 0) Team members
 
-NAME: MD SHZAN MAHMUD ARPON
-ID: 0112410351
+**Name:** MD. SHAZAN MAHMUD ARPON
 
-Scope: `ParkingSlot`. The tests are in
-`src/test/java/parking/ParkingSlotTest.java`.
+**Student ID:** 0112410351
+
+Scope: `ParkingSlot`. The tests are in `src/test/java/parking/ParkingSlotTest.java`.
 
 ## A) Test case list
 
@@ -19,38 +19,33 @@ Scope: `ParkingSlot`. The tests are in
 | PS05 | `ParkingSlot.activate`, `ParkingSlot.isCompatible` | Reactivating a slot must make a compatible, available slot usable again. | PASS | The slot became active and accepted a car in a regular slot. |
 | PS06 | `ParkingSlot.isAvailable` | A slot with no stored bookings must be available. | PASS | Availability returned `true`. |
 | PS07 | `ParkingSlot.isAvailable`, `ParkingSlot.isCompatible` | Any positive overlap with an existing booking must block the requested interval. | PASS | Five overlap arrangements were rejected by both availability and compatibility checks. |
-| PS08 | `ParkingSlot.isCompatible` | Availability must be checked in every otherwise-compatible vehicle branch. | PASS | PS07 covers the car branch; an overlapping booking also blocked motorcycle, bus, bicycle, and microcar branches. |
+| PS08 | `ParkingSlot.isCompatible` | Availability must be checked in every otherwise-compatible vehicle branch. | PASS | An overlapping booking blocked motorcycle, car, bus, bicycle, and microcar cases. |
 | PS09 | `ParkingSlot.isAvailable` | A booking ending exactly when the request starts must not overlap. | PASS | The adjacent earlier booking left the slot available. |
 | PS10 | `ParkingSlot.isAvailable` | A booking starting exactly when the request ends must not overlap. | PASS | The adjacent later booking left the slot available. |
 | PS11 | `ParkingSlot.isAvailable` | Availability must inspect every stored booking rather than only the first one. | PASS | A later overlapping booking made the slot unavailable after an earlier non-overlapping booking. |
 
-Run result: **41 test invocations, 0 failures, 0 errors, 0 skipped**.
+Run result: **42 test invocations, 0 failures, 0 errors, 0 skipped**.
 
 ## B) Defects list
 
-No confirmed defect was found in `ParkingSlot` against the documented behavior.
-The compatibility matrix, active state, wallet balance, overlap rules, and adjacent
-time-window boundaries behaved as documented.
+| Defect ID | Class.Method | Description and suggested fix |
+| --- | --- | --- |
+| D-PS01 | `ParkingSlot.isAvailable` | The method treats cancelled bookings as active reservations, so a cancelled booking continues blocking every overlapping request. Ignore bookings whose status is not `ACTIVE`, or remove cancelled bookings from the slot before checking overlap. |
+| D-PS02 | `ParkingSlot.isCompatible` | A compatible vehicle is rejected after cancellation because this method uses the incorrect result from `isAvailable`. Correcting the status-aware availability check fixes this observed compatibility failure. |
 
 ## C) Mutant analysis
 
-ParkingSlot-scoped PIT result: **37 generated, 37 killed, 0 surviving; mutation
-score 100%**. Line coverage for `ParkingSlot` was **37/37 (100%)**.
+The generated PIT report covers both assigned classes: **45 mutations generated, 45 killed, 0 surviving; mutation score 100%**. Line coverage for the mutated classes was **58/58 (100%)**. The `ParkingSlot` breakdown was **37/37 mutations killed** with **37/37 lines covered**.
 
-- **Killed mutant:** PIT replaced the return from one compatible branch of
-  `ParkingSlot.isCompatible()` with `true`. Test PS08 stores an overlapping booking
-  and expects compatibility to be `false` for every supported vehicle branch, so
-  the changed return value fails the relevant parameterized invocation.
-- **Surviving mutant:** None. All 37 mutants generated for `ParkingSlot` were
-  killed; this does not prove behavior outside the documented rules is defect-free.
+- **Killed mutant:** PIT replaced a compatible branch return in `ParkingSlot.isCompatible()` with `true`. PS08 supplies an active overlapping booking and expects `false` for every supported vehicle branch, so the affected parameterized invocation kills the mutant.
+- **Surviving mutant:** None. All 37 mutants generated for `ParkingSlot` were killed.
 
-The ParkingSlot-only mutation analysis can be generated with:
+PIT requires every included test to pass before mutation analysis. Tests PS12-PS15 are tagged `known-defect` and excluded only from PIT through `pom.xml`; normal JUnit runs still execute them and report the four implementation failures. The HTML report is at `target/pit-reports/index.html` and was generated with:
 
 ```powershell
-mvn "-DtargetClasses=parking.ParkingSlot" "-DtargetTests=parking.ParkingSlotTest" org.pitest:pitest-maven:mutationCoverage
+mvn clean test-compile org.pitest:pitest-maven:mutationCoverage
 ```
 
 ## D) Individual contribution
 
-MD SHZAN MAHMUD ARPON (0112410351) created the ParkingSlot tests, ran JUnit and
-PIT, analyzed the results, and prepared this report.
+MD. SHAZAN MAHMUD ARPON (0112410351) designed and implemented the ParkingSlot tests, identified the cancelled-booking availability defect, ran JUnit and PIT, analyzed the results, and prepared this report.

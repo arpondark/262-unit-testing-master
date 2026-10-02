@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 class BookingTest {
@@ -60,6 +61,52 @@ class BookingTest {
         booking.cancelBooking();
         booking.cancelBooking();
         assertEquals(BookingStatus.CANCELLED, booking.getBookingStatus());
+    }
+
+    @Test
+    @Tag("known-defect")
+    void completedBookingCannotBeCancelled() {
+        booking.completeBooking();
+
+        booking.cancelBooking();
+
+        assertEquals(BookingStatus.COMPLETED, booking.getBookingStatus(),
+                "A completed booking is terminal and must not become cancelled");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void completedBookingRemainsCompletedAfterRepeatedCancellationAttempts() {
+        booking.completeBooking();
+
+        booking.cancelBooking();
+        booking.cancelBooking();
+
+        assertEquals(BookingStatus.COMPLETED, booking.getBookingStatus(),
+                "Repeated cancellation attempts must not overwrite a completed booking");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingCannotBeCompleted() {
+        booking.cancelBooking();
+
+        booking.completeBooking();
+
+        assertEquals(BookingStatus.CANCELLED, booking.getBookingStatus(),
+                "A cancelled booking is terminal and must not become completed");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingRemainsCancelledAfterRepeatedCompletionAttempts() {
+        booking.cancelBooking();
+
+        booking.completeBooking();
+        booking.completeBooking();
+
+        assertEquals(BookingStatus.CANCELLED, booking.getBookingStatus(),
+                "Repeated completion attempts must not overwrite a cancelled booking");
     }
 
     @Test

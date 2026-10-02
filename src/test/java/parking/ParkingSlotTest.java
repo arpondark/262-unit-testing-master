@@ -9,14 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.LocalDateTime;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class ParkingSlotTest {
-    private static final LocalDateTime REQUEST_START =
-            LocalDateTime.of(2026, 9, 27, 10, 0);
+    private static final LocalDateTime REQUEST_START = LocalDateTime.of(2026, 10, 1, 10, 0);
     private static final LocalDateTime REQUEST_END = REQUEST_START.plusHours(2);
 
     private ParkingSlot slot;
@@ -87,8 +87,7 @@ class ParkingSlotTest {
 
         assertAll(
                 () -> assertFalse(slot.isActive()),
-                () -> assertFalse(
-                        slot.isCompatible(VehicleType.CAR, REQUEST_START, REQUEST_END)));
+                () -> assertFalse(slot.isCompatible(VehicleType.CAR, REQUEST_START, REQUEST_END)));
     }
 
     @Test
@@ -98,8 +97,7 @@ class ParkingSlotTest {
 
         assertAll(
                 () -> assertTrue(slot.isActive()),
-                () -> assertTrue(
-                        slot.isCompatible(VehicleType.CAR, REQUEST_START, REQUEST_END)));
+                () -> assertTrue(slot.isCompatible(VehicleType.CAR, REQUEST_START, REQUEST_END)));
     }
 
     @Test
@@ -109,14 +107,33 @@ class ParkingSlotTest {
 
     @ParameterizedTest(name = "existing booking from {0} to {1} overlaps the request")
     @MethodSource("overlappingBookingCases")
-    void overlappingBookingMakesSlotUnavailable(
-            LocalDateTime bookingStart, LocalDateTime bookingEnd) {
-        addBooking(slot, bookingStart, bookingEnd);
+    void overlappingBookingMakesSlotUnavailable(LocalDateTime bookingStart, LocalDateTime bookingEnd) {
+        addBooking(bookingStart, bookingEnd);
 
         assertAll(
                 () -> assertFalse(slot.isAvailable(REQUEST_START, REQUEST_END)),
-                () -> assertFalse(
-                        slot.isCompatible(VehicleType.CAR, REQUEST_START, REQUEST_END)));
+                () -> assertFalse(slot.isCompatible(VehicleType.CAR, REQUEST_START, REQUEST_END)));
+    }
+
+    @ParameterizedTest(name = "an overlapping booking blocks {0} from an otherwise compatible {1} slot")
+    @MethodSource("compatibleVehicleAndSlotCases")
+    void overlappingBookingMakesEveryCompatibleVehicleTypeIncompatible(
+            VehicleType vehicleType, ParkingSlotType slotType) {
+        ParkingSlot candidate = new ParkingSlot("occupied-slot", slotType);
+        Vehicle existingVehicle = new Vehicle(99, VehicleType.CAR, 100.0);
+        candidate.getBookings().add(
+                new Booking(1, existingVehicle, candidate, REQUEST_START, REQUEST_END, 20.0));
+
+        assertFalse(candidate.isCompatible(vehicleType, REQUEST_START, REQUEST_END));
+    }
+
+    private static Stream<Arguments> compatibleVehicleAndSlotCases() {
+        return Stream.of(
+                Arguments.of(VehicleType.MOTORCYCLE, ParkingSlotType.COMPACT),
+                Arguments.of(VehicleType.CAR, ParkingSlotType.REGULAR),
+                Arguments.of(VehicleType.BUS, ParkingSlotType.LARGE),
+                Arguments.of(VehicleType.BICYCLE, ParkingSlotType.HANDICAPPED),
+                Arguments.of(VehicleType.MICROCAR, ParkingSlotType.COMPACT));
     }
 
     private static Stream<Arguments> overlappingBookingCases() {
@@ -128,50 +145,73 @@ class ParkingSlotTest {
                 Arguments.of(REQUEST_START, REQUEST_END));
     }
 
-    @ParameterizedTest(name = "an overlapping booking blocks {0} from a {1} slot")
-    @MethodSource("remainingCompatibleVehicleAndSlotCases")
-    void overlappingBookingBlocksEveryOtherCompatibleVehicleBranch(
-            VehicleType vehicleType, ParkingSlotType slotType) {
-        ParkingSlot candidate = new ParkingSlot("occupied-slot", slotType);
-        addBooking(candidate, REQUEST_START, REQUEST_END);
-
-        assertFalse(candidate.isCompatible(vehicleType, REQUEST_START, REQUEST_END));
-    }
-
-    private static Stream<Arguments> remainingCompatibleVehicleAndSlotCases() {
-        return Stream.of(
-                Arguments.of(VehicleType.MOTORCYCLE, ParkingSlotType.COMPACT),
-                Arguments.of(VehicleType.BUS, ParkingSlotType.LARGE),
-                Arguments.of(VehicleType.BICYCLE, ParkingSlotType.HANDICAPPED),
-                Arguments.of(VehicleType.MICROCAR, ParkingSlotType.COMPACT));
-    }
-
     @Test
     void bookingEndingAtRequestedStartDoesNotOverlap() {
-        addBooking(slot, REQUEST_START.minusHours(2), REQUEST_START);
+        addBooking(REQUEST_START.minusHours(2), REQUEST_START);
 
         assertTrue(slot.isAvailable(REQUEST_START, REQUEST_END));
     }
 
     @Test
     void bookingStartingAtRequestedEndDoesNotOverlap() {
-        addBooking(slot, REQUEST_END, REQUEST_END.plusHours(2));
+        addBooking(REQUEST_END, REQUEST_END.plusHours(2));
 
         assertTrue(slot.isAvailable(REQUEST_START, REQUEST_END));
     }
 
     @Test
     void availabilityChecksEveryStoredBooking() {
-        addBooking(slot, REQUEST_START.minusHours(3), REQUEST_START.minusHours(1));
-        addBooking(slot, REQUEST_START.plusMinutes(15), REQUEST_START.plusMinutes(45));
+        addBooking(REQUEST_START.minusHours(3), REQUEST_START.minusHours(1));
+        addBooking(REQUEST_START.plusMinutes(15), REQUEST_START.plusMinutes(45));
 
         assertFalse(slot.isAvailable(REQUEST_START, REQUEST_END));
     }
 
-    private void addBooking(
-            ParkingSlot parkingSlot, LocalDateTime bookingStart, LocalDateTime bookingEnd) {
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingWithSameWindowDoesNotBlockSlot() {
+        addCancelledBooking(REQUEST_START, REQUEST_END);
+
+        assertTrue(slot.isAvailable(REQUEST_START, REQUEST_END),
+                "Cancelling a reservation must release its parking slot");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingContainingRequestedWindowDoesNotBlockSlot() {
+        addCancelledBooking(REQUEST_START.minusHours(1), REQUEST_END.plusHours(1));
+
+        assertTrue(slot.isAvailable(REQUEST_START, REQUEST_END),
+                "A cancelled reservation must be ignored even when its old window contains the request");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingInsideRequestedWindowDoesNotBlockSlot() {
+        addCancelledBooking(REQUEST_START.plusMinutes(30), REQUEST_END.minusMinutes(30));
+
+        assertTrue(slot.isAvailable(REQUEST_START, REQUEST_END),
+                "A cancelled reservation must be ignored even when its old window is inside the request");
+    }
+
+    @Test
+    @Tag("known-defect")
+    void cancelledBookingDoesNotMakeCompatibleVehicleIncompatible() {
+        addCancelledBooking(REQUEST_START, REQUEST_END);
+
+        assertTrue(slot.isCompatible(VehicleType.CAR, REQUEST_START, REQUEST_END),
+                "A compatible vehicle must be able to use a slot released by cancellation");
+    }
+
+    private void addBooking(LocalDateTime start, LocalDateTime end) {
         Vehicle vehicle = new Vehicle(1, VehicleType.CAR, 100.0);
-        parkingSlot.getBookings().add(
-                new Booking(1, vehicle, parkingSlot, bookingStart, bookingEnd, 20.0));
+        slot.getBookings().add(new Booking(1, vehicle, slot, start, end, 20.0));
+    }
+
+    private void addCancelledBooking(LocalDateTime start, LocalDateTime end) {
+        Vehicle vehicle = new Vehicle(1, VehicleType.CAR, 100.0);
+        Booking cancelledBooking = new Booking(1, vehicle, slot, start, end, 20.0);
+        cancelledBooking.cancelBooking();
+        slot.getBookings().add(cancelledBooking);
     }
 }
