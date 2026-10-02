@@ -19,12 +19,12 @@ Scope: `ParkingSlot`. The tests are in
 | PS05 | `ParkingSlot.activate`, `ParkingSlot.isCompatible` | Reactivating a slot must make a compatible, available slot usable again. | PASS | The slot became active and accepted a car in a regular slot. |
 | PS06 | `ParkingSlot.isAvailable` | A slot with no stored bookings must be available. | PASS | Availability returned `true`. |
 | PS07 | `ParkingSlot.isAvailable`, `ParkingSlot.isCompatible` | Any positive overlap with an existing booking must block the requested interval. | PASS | Five overlap arrangements were rejected by both availability and compatibility checks. |
-| PS08 | `ParkingSlot.isCompatible` | Availability must be checked in every otherwise-compatible vehicle branch. | PASS | An overlapping booking blocked motorcycle, car, bus, bicycle, and microcar cases. |
+| PS08 | `ParkingSlot.isCompatible` | Availability must be checked in every otherwise-compatible vehicle branch. | PASS | PS07 covers the car branch; an overlapping booking also blocked motorcycle, bus, bicycle, and microcar branches. |
 | PS09 | `ParkingSlot.isAvailable` | A booking ending exactly when the request starts must not overlap. | PASS | The adjacent earlier booking left the slot available. |
 | PS10 | `ParkingSlot.isAvailable` | A booking starting exactly when the request ends must not overlap. | PASS | The adjacent later booking left the slot available. |
 | PS11 | `ParkingSlot.isAvailable` | Availability must inspect every stored booking rather than only the first one. | PASS | A later overlapping booking made the slot unavailable after an earlier non-overlapping booking. |
 
-Run result: **42 test invocations, 0 failures, 0 errors, 0 skipped**.
+Run result: **41 test invocations, 0 failures, 0 errors, 0 skipped**.
 
 ## B) Defects list
 
